@@ -20,6 +20,7 @@ FEATURES
  * Pass the '-t' parameter to do a dry-run and see how much space you could be saving
  * Adds far future expiration header to each file
  * Prints a summary of total bytes saved when complete
+ * Selects files to be smushed using an SQL query
 
 REQUIREMENTS
 ------------
@@ -35,6 +36,12 @@ USAGE
 or
 
 `./autosmush some-s3-bucket-name/path/to/files`
+
+or 
+
+Edit SQL_SELECT_QUERY with a valid SQL query selecting only one colomn with the location of the file in the S3 bucket.
+
+`./autosmush -s some-s3-bucket`
 
 
 UPDATES

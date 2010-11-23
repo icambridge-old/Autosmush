@@ -11,13 +11,14 @@
 
     define('AWS_S3_KEY', '');
     define('AWS_S3_SECRET', '');
+    // SQL_TYPE is the driver name for pdo's dsn
     define('SQL_TYPE', '');
     define('SQL_USERNAME', '');    
     define('SQL_PASSWORD', '');    
     define('SQL_DATABASE', '');    
     define('SQL_HOSTNAME', '');
-    define('SQL_SELECT_QUERY', '');
-    define('SQL_UPDATE_QUERY', '');
+    define('SQL_SELECT_QUERY', ''); 
+    define('SQL_UPDATE_QUERY', ''); // Executed at the end.
     
     
 
