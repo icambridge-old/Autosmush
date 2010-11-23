@@ -28,7 +28,7 @@
     require_once 'lib/sdk/sdk.class.php';
     require_once 'lib/class.smushit.php';
 
-    $shortops = 'tq';
+    $shortops = 'tqs';
     $longopts = array('help');
     $options  = getopt($shortops, $longopts);
 
