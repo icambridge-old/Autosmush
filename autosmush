@@ -11,6 +11,15 @@
 
     define('AWS_S3_KEY', '');
     define('AWS_S3_SECRET', '');
+    define('SQL_TYPE', '');
+    define('SQL_USERNAME', '');    
+    define('SQL_PASSWORD', '');    
+    define('SQL_DATABASE', '');    
+    define('SQL_HOSTNAME', '');
+    define('SQL_SELECT_QUERY', '');
+    define('SQL_UPDATE_QUERY', '');
+    
+    
 
     // Prevent PHP 5.3 time zone warning...
     if(function_exists('date_default_timezone_set'))
@@ -29,6 +38,7 @@
         echo "Scans an Amazon S3 bucket for uncompressed images and smushes them using Yahoo!'s Smush.it service.\n";
         echo "-t  Test mode - don't commit any changes\n";
         echo "-q  Quite mode - only display errors\n";
+        echo "-s  SQL mode - only smush files that come from the SQL Query";
         echo "\n";
         exit;
     }
@@ -37,6 +47,11 @@
         define('TEST', true);
     else
         define('TEST', false);
+        
+    if(array_key_exists('s', $options))
+        define('QUERY', true);
+    else
+        define('QUERY', false);    
 
     // Parse out our $bucket_name and $bucket_path...
     $slash = strpos($GLOBALS['argv'][$GLOBALS['argc'] - 1], '/');
@@ -65,21 +80,41 @@
         // Get the bucket's contents...
         $s3      = new AmazonS3(AWS_S3_KEY, AWS_S3_SECRET);
         $options = array('prefix' => $bucket_path);
-        $xml     = $s3->list_objects($bucket_name, $options);
+        
+        if ( !QUERY ) {
+          $xml     = $s3->list_objects($bucket_name, $options);
 
-        if((string)$xml->status != '200')
-            die("Error: Unable to retrieve bucket contents.\n");
+          if((string)$xml->status != '200')
+              die("Error: Unable to retrieve bucket contents.\n");
 
-        // Quit if the bucket is empty
-        if(!isset($xml->body) || !isset($xml->body->Contents))
-            die("\n");
-
+          // Quit if the bucket is empty
+          if(!isset($xml->body) || !isset($xml->body->Contents))
+              die("\n");
+              
+          $contents = $xml->body->Contents;    
+        } else {
+        
+            $pdo = new PDO(SQL_TYPE.":dbname=".SQL_DATABASE.";host=".SQL_HOSTNAME, SQL_USERNAME, SQL_PASSWORD);
+            $result = $pdo->query(SQL_SELECT_QUERY);
+            
+            if ( $result === false ) {
+              die("Error: SQL Query failed to select");
+            }
+            
+            $raw_contents = $result->fetchAll(PDO::FETCH_NUM);
+            $contents = array();
+            foreach( $raw_contents as $object ){
+                  $contents[] = (object) array( 'Key' => $object[0] );
+            }
+            
+        }
+        
         // Loop through everything in the bucket and start smushing...
         $smush = new SmushIt();
-        foreach($xml->body->Contents as $object)
+        foreach($contents as $object)
         {
             // Only smush images...
-            if(preg_match('/\.(jpg|jpeg|png)$/i', (string)$object->Key) === 1)
+            if(preg_match('/\.(jpg|jpeg|png|gif)$/i', (string)$object->Key) === 1)
             {
                 // But first, check to see if the image has already been smushed...
                 $headers = $s3->get_object_headers($bucket_name, $object->Key);
@@ -150,6 +185,11 @@
                 }
             }
         }
+
+        if ( QUERY ) {
+            $pdo->query(SQL_UPDATE_QUERY);
+        }
+        
 
         // Print our savings...
         iflog('  Files Smushed: ' . $files_smushed . "\n");
