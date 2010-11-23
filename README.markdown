@@ -20,12 +20,13 @@ FEATURES
  * Pass the '-t' parameter to do a dry-run and see how much space you could be saving
  * Adds far future expiration header to each file
  * Prints a summary of total bytes saved when complete
- * Selects files to be smushed using an SQL query
+ * Selects files to be smushed using an SQL query by passing '-s' parameter
 
 REQUIREMENTS
 ------------
 
  * Requires PHP5 and php_curl extension.
+ * Requires pdo and a pdo driver such as pdo_mysql or pdo_pgsql for sql ability.
  * Requires the [AWS SDK for PHP](http://aws.amazon.com/sdkforphp/). (Download and install instructions are located inside autosmush.)
 
 USAGE
