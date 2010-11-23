@@ -15,6 +15,7 @@
     define('MYSQL_PASSWORD', '');
     define('MYSQL_HOSTNAME', '');
     define('MYSQL_DATABASE', '');
+    define('MYSQL_TABLE','');
 
     // Prevent PHP 5.3 time zone warning...
     if(function_exists('date_default_timezone_set'))
@@ -228,7 +229,7 @@
                                         );
          $s3->create_object($bucket_name, $newImage, $options);
  
-         $objPrepared = $objPdo->prepare('INSERT INTO `wp_ngg_pictures` (galleryid,filename) VALUES (1,:filename)');
+         $objPrepared = $objPdo->prepare('INSERT INTO `'.MYSQL_TABLE.'` (galleryid,filename) VALUES (1,:filename)');
          $objPrepared->bindParam(':filename',basename((string)$object->Key));
          if ( !$objPrepared->execute() ){
              iflog("ERROR: Can't insert into DB");

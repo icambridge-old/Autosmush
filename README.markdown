@@ -1,4 +1,4 @@
-Autosmush
+Autosmush - Gallery
 =========
 
 [Read the introductory blog post](http://clickontyler.com/blog/2010/10/automatically-compressing-your-amazon-s3-images-using-yahoos-smush-it-service/).
@@ -12,6 +12,9 @@ expires header on your images to aid in browser caching as recommended by
 Autosmush can be run manually or as a cron job. It avoids re-smushing images by checking for an
 'x-amz-smushed' HTTP header on already processed images.
 
+
+Modified version to create a thumbnail of each picture and insert into a NextGen Gallery table.
+
 FEATURES
 --------
 
@@ -20,11 +23,13 @@ FEATURES
  * Pass the '-t' parameter to do a dry-run and see how much space you could be saving
  * Adds far future expiration header to each file
  * Prints a summary of total bytes saved when complete
+ * Creates a thumbnail
+ * Inserts into NexTGen Gallery Table
 
 REQUIREMENTS
 ------------
 
- * Requires PHP5 and php_curl extension.
+ * Requires PHP5 and php_curl extension and PDO MySQL extension.
  * Requires the [AWS SDK for PHP](http://aws.amazon.com/sdkforphp/). (Download and install instructions are located inside autosmush.)
 
 USAGE
