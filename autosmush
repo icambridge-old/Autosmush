@@ -11,6 +11,10 @@
 
     define('AWS_S3_KEY', '');
     define('AWS_S3_SECRET', '');
+    define('MYSQL_USERNAME', '');
+    define('MYSQL_PASSWORD', '');
+    define('MYSQL_HOSTNAME', '');
+    define('MYSQL_DATABASE', '');
 
     // Prevent PHP 5.3 time zone warning...
     if(function_exists('date_default_timezone_set'))
@@ -62,6 +66,9 @@
         $total_compressed_bytes   = 0;
         $total_uncompressed_bytes = 0;
 
+        // PDO object
+        $objPdo = new PDO('mysql:dbname='.MYSQL_DATABASE.';host='.MYSQL_HOSTNAME,MYSQL_USERNAME,MYSQL_PASSWORD);
+        
         // Get the bucket's contents...
         $s3      = new AmazonS3(AWS_S3_KEY, AWS_S3_SECRET);
         $options = array('prefix' => $bucket_path);
@@ -124,6 +131,7 @@
                                             'headers' => array('expires' => date('D, j M Y H:i:s', time() + (86400 * 365 * 10)) . ' GMT')
                                             );
                             $s3->create_object($bucket_name, $object->Key, $options);
+                            createThumb($object,$s3,$objPdo,$bucket_name);
                         }
                         else
                         {
@@ -146,6 +154,7 @@
                                         'headers' => array('expires' => date('D, j M Y H:i:s', time() + (86400 * 365 * 10)) . ' GMT')
                                         );
                         $s3->update_object($bucket_name, $object->Key, $options);
+                        createThumb($object,$s3,$objPdo,$bucket_name);
                     }
                 }
             }
@@ -178,3 +187,52 @@
         }
         return round($val, $round) . array_shift($unit) . 'B';
     }
+    
+    function createThumb($object,$s3,$objPdo,$bucket_name){
+ 
+       if ( preg_match('/\.(jpg|jpeg)$/i', (string)$object->Key) === 1 ){
+             $src = ImageCreateFromJpeg("http://s3.amazonaws.com/$bucket_name/" . $object->Key);
+        } else {
+              $src = ImageCreateFromPNG("http://s3.amazonaws.com/$bucket_name/" . $object->Key);
+         }
+ 
+        if ( !$src ){
+            die('Failed');
+         }
+        $actualWidth = ImageSx($src);
+        $actualHeight = ImageSy($src);
+        $ratio = $actualWidth/150;
+        $newHeight = $actualHeight/$ratio;
+        $dst = ImageCreateTrueColor(150,$newHeight);
+        ImageCopyResampled($dst,$src,0,0,0,0,150,$newHeight,$actualWidth,$actualHeight);
+        $thumb_temp_filename = tempnam('/tmp','FOO');
+        if ( preg_match('/\.(jpg|jpeg)$/i', (string)$object->Key) === 1 ){
+            if (!ImageJPEG($dst,$thumb_temp_filename)){
+                die('Failed');
+            }
+        }else{
+            ImagePNG($dst,$thumb_temp_filename);
+        }
+ 
+        imagedestroy($src);
+        imagedestroy($dst);
+ 
+        $newImage = '_thumbs/'.basename((string)$object->Key);
+ 
+         $options = array(
+                     'fileUpload' => $thumb_temp_filename,
+                                        'acl' => AmazonS3::ACL_PUBLIC,
+                                        'contentType' => (string)$headers->header['content-type'],
+                                        'meta' => array('smushed' => 'yes'),
+                                        'headers' => array('expires' => date('D, j M Y H:i:s', time() + (86400 * 365 * 10)) . ' GMT')
+                                        );
+         $s3->create_object($bucket_name, $newImage, $options);
+ 
+         $objPrepared = $objPdo->prepare('INSERT INTO `wp_ngg_pictures` (galleryid,filename) VALUES (1,:filename)');
+         $objPrepared->bindParam(':filename',basename((string)$object->Key));
+         if ( !$objPrepared->execute() ){
+             iflog("ERROR: Can't insert into DB");
+         }
+ 
+        unlink($thumb_temp_filename);
+  }
